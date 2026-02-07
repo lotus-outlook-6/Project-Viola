@@ -74,7 +74,7 @@ python main.py
 
 - **Python 3.8+** (Tested with Python 3.12.5)
 - **Microphone**: For voice input
-- **Internet Connection**: For Google Speech API and web browsing
+- **Internet Connection**: For Google Speech Recognition and web browsing
 - **Windows OS**: (Primary support; other OS may vary)
 
 ## How to Use
@@ -130,6 +130,18 @@ python main.py
 | Command | Action |
 |---------|--------|
 | `"stop listening"` | Exit the program |
+
+### General Knowledge (DuckDuckGo Search)
+| Command | Action |
+|---------|--------|
+| `"who is [person]"` | Searches DuckDuckGo for answer |
+| `"what is [thing]"` | Searches DuckDuckGo for answer |
+| `"when is [event]"` | Searches DuckDuckGo for answer |
+| `"how far is [X] from [Y]"` | Calculates distance using search |
+| `"distance between [X] and [Y]"` | Calculates distance using search |
+| *Any other query* | Performs a general web search |
+
+**Note:** No API key required for DuckDuckGo search!
 
 ---
 

@@ -36,12 +36,20 @@ import speech_recognition as sr
 import webbrowser
 import pyttsx3
 import sys
+import os
+from dotenv import load_dotenv
+
+import re
 import musicLibrary
 import newsLibrary
+import duckduckgo_library
+import urllib.parse
+
+load_dotenv()
 
 def speak(text):
     """
-    Convert text to speech using pyttsx3 engine with female voice.
+    Convert text to speech using pyttsx3.
     
     Args:
         text (str): The text to be spoken
@@ -50,28 +58,22 @@ def speak(text):
         None
     """
     try:
-        # Initialize the text-to-speech engine
+        # Utilize pyttsx3 for offline text-to-speech
         engine = pyttsx3.init()
-        
-        # Set speech rate (higher = faster, lower = slower)
         engine.setProperty('rate', 150)
-        
-        # Set voice to female (voices[1] is typically the female voice)
         voices = engine.getProperty('voices')
         if len(voices) > 1:
             engine.setProperty('voice', voices[1].id)  # Female voice
-        
-        # Queue the text to be spoken
         engine.say(text)
-        
-        # Block until the speech finishes
         engine.runAndWait()
-        
-        # Stop the engine
         engine.stop()
+
     except Exception as e:
         print(f"Error in speak: {e}")
         sys.stdout.flush()
+
+
+
 
 def process_command(c):
     """
@@ -147,7 +149,33 @@ def process_command(c):
     
     # Default case: command not recognized
     else:
-        speak("I didn't understand that command")
+        # Try web search for factual queries (where/what/who/how far)
+        # Patterns like 'where is X', 'what is X', 'who is X', 'distance between X and Y'
+        
+        # Check for distance queries first
+        m = re.search(r"how far is (.+?) from (.+)", c.lower())
+        if not m:
+            m = re.search(r"distance between (.+?) and (.+)", c.lower())
+        
+        if m:
+            origin = m.group(1).strip()
+            destination = m.group(2).strip()
+            query = f"distance from {origin} to {destination}"
+            result = duckduckgo_library.web_search_summary(query)
+            speak(result)
+            return
+        
+        # Check for factual queries
+        qmatch = re.search(r"^(where|what|who|when|why|how)\b(.+)$", c.lower())
+        if qmatch:
+            qtext = qmatch.group(0).strip()
+            result = duckduckgo_library.web_search_summary(qtext)
+            speak(result)
+            return
+        
+        # General fallback: ask DuckDuckGo
+        result = duckduckgo_library.web_search_summary(c)
+        speak(result)
 
     
 
@@ -168,60 +196,62 @@ if __name__ == "__main__":
     while True:
         # Create a speech recognizer object
         r = sr.Recognizer()
-        
+        r.dynamic_energy_threshold = True
+        r.pause_threshold = 0.5
+
         try:
             # Use the microphone as the audio source
             with sr.Microphone() as source:
                 # Adjust recognizer to ambient noise to improve accuracy
-                r.adjust_for_ambient_noise(source, duration=1)
-                
-                # Listen for the wake word
+                r.adjust_for_ambient_noise(source, duration=0.5)
+
+                # Listen for the wake word (blocking until speech starts)
                 print("Listening...")
-                try:
-                    # Listen for audio input (timeout=2 seconds)
-                    audio = r.listen(source, timeout=2, phrase_time_limit=2)
-                except sr.WaitTimeoutError:
-                    print("No speech detected, retrying...")
-                    continue
-                
+                # Block until speech starts, then capture up to 4 seconds
+                audio = r.listen(source, phrase_time_limit=4)
+
                 # Recognize speech using Google Speech Recognition API
                 print("Recognizing...")
                 try:
                     word = r.recognize_google(audio)
                     print(f"Heard: {word}")
                 except sr.UnknownValueError:
-                    print("Could not understand, retrying...")
+                    print("Could not understand, returning to listen mode...")
                     continue
-                
-                # Check for stop command first
-                if "stop listening" in word.lower():
+
+                lw = word.lower().strip()
+                # Only react if the user said the exact wake word 'viola' (word-boundary) or 'stop listening'
+                if "stop listening" in lw:
                     print("Stop listening command detected, exiting...")
                     speak("Stopping Viola. Goodbye!")
                     break
-                
-                # Check if the wake word "viola" was detected
-                if "viola" in word.lower():
-                    print("Wake word detected!")
-                    speak("Yes, how can I help you?")
-                    print("Viola is listening for a command...")
-                    
-                    try:
-                        # Listen for the actual command (timeout=10 seconds)
-                        audio = r.listen(source, timeout=10, phrase_time_limit=10)
-                    except sr.WaitTimeoutError:
-                        print("Timed out, returning to listen mode...")
-                        continue
-                    
-                    # Recognize the command
-                    print("Recognizing...")
-                    try:
-                        command = r.recognize_google(audio)
-                        print(f"Command received: {command}")
-                        # Process the recognized command
-                        process_command(command)
-                    except sr.UnknownValueError:
-                        speak("I didn't understand that command")
-        
+
+                if not re.search(r"\bviola\b", lw):
+                    # Not the wake word; go back to listening without further processing
+                    print("Wake word not detected, continuing to listen...")
+                    continue
+
+                # Wake word matched
+                print("Wake word detected!")
+                speak("Yes, how can I help you?")
+                print("Viola is listening for a command...")
+                try:
+                    # Listen for the actual command (timeout=8 seconds)
+                    audio = r.listen(source, timeout=8, phrase_time_limit=8)
+                except sr.WaitTimeoutError:
+                    print("Timed out, returning to listen mode...")
+                    continue
+
+                # Recognize the command
+                print("Recognizing...")
+                try:
+                    command = r.recognize_google(audio)
+                    print(f"Command received: {command}")
+                    # Process the recognized command
+                    process_command(command)
+                except sr.UnknownValueError:
+                    speak("I didn't understand that command")
+
         except sr.WaitTimeoutError:
             # Timeout while listening for wake word, continue
             pass
