@@ -22,6 +22,10 @@ Information:
   - "what is your name" : Assistant introduces itself
   - "who are you"      : Assistant introduces itself
 
+News:
+  - "tell me news" or "give me news" : Tells top 5 latest headlines from India
+  - "latest news"      : Tells top 5 latest headlines from India
+
 Control:
   - "stop listening"   : Exit the program
 
@@ -33,6 +37,7 @@ import webbrowser
 import pyttsx3
 import sys
 import musicLibrary
+import newsLibrary
 
 def speak(text):
     """
@@ -126,6 +131,17 @@ def process_command(c):
             # User said "play" without specifying a song
             available_songs = ", ".join(musicLibrary.list_available_songs())
             speak(f"Available songs are: {available_songs}")
+    
+    # News Commands
+    elif "news" in c or "headlines" in c:
+        speak("Fetching the latest news from India. Please wait...")
+        headlines = newsLibrary.get_india_news()
+        
+        # Speak each headline
+        for headline in headlines:
+            speak(headline)
+        
+        speak("That's all the news for now.")
     
     # Default case: command not recognized
     else:

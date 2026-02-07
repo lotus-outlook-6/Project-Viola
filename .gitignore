@@ -5,6 +5,11 @@ ENV/
 env/
 
 # Python
+# Environment variables
+.env
+.env.local
+.env.*.local
+
 __pycache__/
 *.py[cod]
 *$py.class
