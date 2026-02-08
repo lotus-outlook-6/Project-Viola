@@ -1,5 +1,9 @@
 # Viola - AI Voice Assistant
 
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/lotus-outlook-6/Project-Viola)
+![Python](https://img.shields.io/badge/python-3.8%2B-blue)
+![Build Status](https://github.com/lotus-outlook-6/Project-Viola/actions/workflows/python-app.yml/badge.svg)
+
 A powerful Python-based voice assistant that listens to your commands and performs various tasks using speech recognition and text-to-speech technology.
 
 ## Features
